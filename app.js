@@ -92,6 +92,7 @@ const btnPrev = document.getElementById("btn-prev");
 const btnSelect = document.getElementById("btn-select");
 const statusLedBtn = document.getElementById("status-led-btn");
 const clickwheel = document.getElementById("clickwheel");
+const wheelOuterWrap = document.querySelector(".clickwheel-outer-wrap");
 
 // Screen elements
 const npSongTitle = document.getElementById("np-song-title");
@@ -392,26 +393,13 @@ function handleWheelStart(e) {
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   
-  // Never intercept taps directly on the center select button
-  if (e.target.closest(".clickwheel-center, #btn-select")) return;
-
-  // Check how far from center the touch is.
-  // If the touch is very close to center (inner 30% radius), treat it as a button tap.
-  const rect = clickwheel.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-  const dist = Math.hypot(clientX - centerX, clientY - centerY);
-  const radius = rect.width / 2;
+  // Bail out if user taps directly on any inner button — let the click fire
+  if (e.target.closest(".clickwheel-center, .wheel-btn")) return;
   
-  // Inner 35% = button zone (play/menu/next/prev) — let click propagate
-  if (dist < radius * 0.35) return;
-
   isDraggingWheel = true;
   startAngle = getWheelAngle(clientX, clientY);
   lastAngle = startAngle;
   angleAccumulator = 0;
-  // Note: do NOT call e.preventDefault() here — it would cancel click events.
-  // Scroll is blocked inside handleWheelMove once dragging is confirmed.
 }
 
 function handleWheelMove(e) {
@@ -551,13 +539,15 @@ statusLedBtn.addEventListener("click", () => {
   }
 });
 
-// Clickwheel gestures listeners
+// Clickwheel gestures listeners — mouse
 clickwheel.addEventListener("mousedown", handleWheelStart);
 window.addEventListener("mousemove", handleWheelMove);
 window.addEventListener("mouseup", handleWheelEnd);
 
-// Use passive: false so we can call preventDefault() to block page scroll
-clickwheel.addEventListener("touchstart", handleWheelStart, { passive: false });
+// Touch: attach to the outer wrap so the ring area always fires touchstart,
+// even if buttons inside the ring are covering the inner part.
+// passive:false lets us call preventDefault() in handleWheelMove to stop scroll.
+wheelOuterWrap.addEventListener("touchstart", handleWheelStart, { passive: false });
 window.addEventListener("touchmove", handleWheelMove, { passive: false });
 window.addEventListener("touchend", handleWheelEnd);
 
