@@ -399,10 +399,16 @@ function handleWheelStart(e) {
   startAngle = getWheelAngle(clientX, clientY);
   lastAngle = startAngle;
   angleAccumulator = 0;
+  
+  // Prevent page scroll when starting drag on clickwheel
+  if (e.touches) e.preventDefault();
 }
 
 function handleWheelMove(e) {
   if (!isDraggingWheel) return;
+  
+  // Prevent page scroll while rotating the clickwheel on touch
+  if (e.touches) e.preventDefault();
   
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -540,8 +546,9 @@ clickwheel.addEventListener("mousedown", handleWheelStart);
 window.addEventListener("mousemove", handleWheelMove);
 window.addEventListener("mouseup", handleWheelEnd);
 
-clickwheel.addEventListener("touchstart", handleWheelStart, { passive: true });
-window.addEventListener("touchmove", handleWheelMove, { passive: true });
+// Use passive: false so we can call preventDefault() to block page scroll
+clickwheel.addEventListener("touchstart", handleWheelStart, { passive: false });
+window.addEventListener("touchmove", handleWheelMove, { passive: false });
 window.addEventListener("touchend", handleWheelEnd);
 
 // Vinyl disc direct play/pause
