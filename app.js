@@ -377,73 +377,105 @@ function triggerTactileClick() {
 }
 
 // 6. Rotational Wheel Volume & Navigation Control
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 let isDraggingWheel = false;
+let dragIntent    = false; // finger is down, waiting to see if it's a drag
+let touchStartX   = 0;
+let touchStartY   = 0;
+const DRAG_COMMIT_PX = 7; // pixels of movement before we commit to drag
 let startAngle = 0;
-let lastAngle = 0;
+let lastAngle  = 0;
 let angleAccumulator = 0;
 
 function getWheelAngle(clientX, clientY) {
   const rect = clickwheel.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
+  const centerY = rect.top  + rect.height / 2;
   return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
 }
 
 function handleWheelStart(e) {
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  
-  // Bail out if user taps directly on any inner button — let the click fire
-  if (e.target.closest(".clickwheel-center, .wheel-btn")) return;
-  
-  isDraggingWheel = true;
+  // Always let center-button taps through
+  if (e.target.closest(".clickwheel-center")) return;
+
+  const touch  = e.touches ? e.touches[0] : null;
+  const clientX = touch ? touch.clientX : e.clientX;
+  const clientY = touch ? touch.clientY : e.clientY;
+
+  // Record where the finger landed but don't commit to drag yet
+  touchStartX = clientX;
+  touchStartY = clientY;
+  dragIntent  = true;
+  isDraggingWheel = false;
+
   startAngle = getWheelAngle(clientX, clientY);
-  lastAngle = startAngle;
+  lastAngle  = startAngle;
   angleAccumulator = 0;
 }
 
 function handleWheelMove(e) {
+  if (!dragIntent && !isDraggingWheel) return;
+
+  const touch   = e.touches ? e.touches[0] : null;
+  const clientX = touch ? touch.clientX : e.clientX;
+  const clientY = touch ? touch.clientY : e.clientY;
+
+  // Commit to drag only once the finger has moved DRAG_COMMIT_PX
+  if (dragIntent && !isDraggingWheel) {
+    const moved = Math.hypot(clientX - touchStartX, clientY - touchStartY);
+    if (moved >= DRAG_COMMIT_PX) {
+      isDraggingWheel = true;
+      dragIntent = false;
+    } else {
+      return; // haven't moved far enough — don't scroll yet
+    }
+  }
+
   if (!isDraggingWheel) return;
-  
-  // Prevent page scroll while rotating the clickwheel on touch
-  if (e.touches) e.preventDefault();
-  
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  
+
+  // Stop the page from scrolling while rotating the wheel
+  if (e.cancelable) e.preventDefault();
+
   const currentAngle = getWheelAngle(clientX, clientY);
   let delta = currentAngle - lastAngle;
-  
-  // Normalize delta across boundaries (-180 to 180 transition)
-  if (delta > 180) delta -= 360;
+  if (delta >  180) delta -= 360;
   if (delta < -180) delta += 360;
-  
+
   angleAccumulator += delta;
   lastAngle = currentAngle;
-  
-  // We trigger a tick action every 18 degrees of rotation
+
   const degreesPerTick = 18;
   if (Math.abs(angleAccumulator) >= degreesPerTick) {
-    const ticks = Math.floor(Math.abs(angleAccumulator) / degreesPerTick);
+    const ticks     = Math.floor(Math.abs(angleAccumulator) / degreesPerTick);
     const direction = angleAccumulator > 0 ? "clockwise" : "counterclockwise";
-    
-    // Clear residual accumulator
     angleAccumulator = angleAccumulator % degreesPerTick;
-    
+
     for (let i = 0; i < ticks; i++) {
       if (activeView === "now-playing" || activeView === "visualizer") {
-        // Adjust volume
-        adjustVolume(direction === "clockwise" ? 0.05 : -0.05);
+        if (isIOS) {
+          // iOS blocks audio.volume — seek forward/backward instead
+          seekTrack(direction === "clockwise" ? 3 : -3);
+        } else {
+          adjustVolume(direction === "clockwise" ? 0.05 : -0.05);
+        }
       } else {
-        // Navigate list menu
         handleMenuNavigation(direction === "clockwise" ? "down" : "up");
       }
     }
   }
 }
 
+function seekTrack(seconds) {
+  if (!audio.duration) return;
+  audio.currentTime = Math.min(Math.max(audio.currentTime + seconds, 0), audio.duration);
+  triggerTactileClick();
+}
+
 function handleWheelEnd() {
   isDraggingWheel = false;
+  dragIntent = false;
 }
 
 function adjustVolume(amount) {
@@ -544,12 +576,22 @@ clickwheel.addEventListener("mousedown", handleWheelStart);
 window.addEventListener("mousemove", handleWheelMove);
 window.addEventListener("mouseup", handleWheelEnd);
 
-// Touch: attach to the outer wrap so the ring area always fires touchstart,
-// even if buttons inside the ring are covering the inner part.
-// passive:false lets us call preventDefault() in handleWheelMove to stop scroll.
+// Touch: attach to outer wrap; passive:false lets us call preventDefault in move.
 wheelOuterWrap.addEventListener("touchstart", handleWheelStart, { passive: false });
 window.addEventListener("touchmove", handleWheelMove, { passive: false });
 window.addEventListener("touchend", handleWheelEnd);
+
+// Prevent double-tap zoom on iOS (which ignores user-scalable=no)
+(function preventDoubleTapZoom() {
+  let lastTap = 0;
+  document.addEventListener("touchend", function(e) {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      e.preventDefault();
+    }
+    lastTap = now;
+  }, { passive: false });
+})();
 
 // Vinyl disc direct play/pause
 vinylDisc.addEventListener("click", (e) => {
