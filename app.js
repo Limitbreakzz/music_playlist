@@ -392,16 +392,18 @@ function handleWheelStart(e) {
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   
-  // Prevent center button click triggering drag
-  if (e.target.closest("#btn-select")) return;
+  // Bail out if the user is tapping any actual button — let click fire normally
+  const isButton = e.target.closest(
+    "#btn-select, #btn-play-pause, #btn-menu, #btn-next, #btn-prev, .wheel-top, .wheel-bottom, .wheel-left, .wheel-right, .clickwheel-center"
+  );
+  if (isButton) return;
   
   isDraggingWheel = true;
   startAngle = getWheelAngle(clientX, clientY);
   lastAngle = startAngle;
   angleAccumulator = 0;
-  
-  // Prevent page scroll when starting drag on clickwheel
-  if (e.touches) e.preventDefault();
+  // Note: do NOT call e.preventDefault() here — it would cancel the click event
+  // on any buttons the user might tap. Scroll is blocked in handleWheelMove instead.
 }
 
 function handleWheelMove(e) {
