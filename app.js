@@ -454,12 +454,10 @@ function handleWheelMove(e) {
 
     for (let i = 0; i < ticks; i++) {
       if (activeView === "now-playing" || activeView === "visualizer") {
-        if (isIOS) {
-          // iOS blocks audio.volume — seek forward/backward instead
-          seekTrack(direction === "clockwise" ? 3 : -3);
-        } else {
-          adjustVolume(direction === "clockwise" ? 0.05 : -0.05);
-        }
+        // Note: on iOS, audio.volume is read-only — HUD shows but device volume
+        // must be changed with hardware buttons. We still call adjustVolume so
+        // the UI responds visually.
+        adjustVolume(direction === "clockwise" ? 0.05 : -0.05);
       } else {
         handleMenuNavigation(direction === "clockwise" ? "down" : "up");
       }
@@ -467,10 +465,32 @@ function handleWheelMove(e) {
   }
 }
 
+// seekTrack kept for potential future use
 function seekTrack(seconds) {
   if (!audio.duration) return;
   audio.currentTime = Math.min(Math.max(audio.currentTime + seconds, 0), audio.duration);
   triggerTactileClick();
+}
+
+// Show a one-time iOS volume hint
+let iosVolumeHintShown = false;
+function showIOSVolumeHint() {
+  if (!isIOS || iosVolumeHintShown) return;
+  iosVolumeHintShown = true;
+  const hint = document.createElement("div");
+  hint.textContent = "🔊 On iPhone/iPad, use hardware volume buttons";
+  Object.assign(hint.style, {
+    position: "fixed", bottom: "24px", left: "50%",
+    transform: "translateX(-50%)",
+    background: "rgba(0,0,0,0.88)", color: "#fff",
+    fontSize: "13px", padding: "10px 18px",
+    borderRadius: "20px", zIndex: "9999",
+    whiteSpace: "nowrap", pointerEvents: "none",
+    transition: "opacity 0.4s",
+  });
+  document.body.appendChild(hint);
+  setTimeout(() => { hint.style.opacity = "0"; }, 2800);
+  setTimeout(() => { hint.remove(); }, 3300);
 }
 
 function handleWheelEnd() {
@@ -480,8 +500,11 @@ function handleWheelEnd() {
 
 function adjustVolume(amount) {
   volume = Math.min(Math.max(volume + amount, 0), 1);
-  audio.volume = volume;
+  audio.volume = volume; // no-op on iOS but kept for Android/Desktop
   
+  // Show iOS hint once so user knows to use hardware buttons
+  showIOSVolumeHint();
+
   // Volume HUD
   volumeBarFill.style.width = `${volume * 100}%`;
   volumeHud.classList.add("visible");
