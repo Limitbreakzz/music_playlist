@@ -392,18 +392,26 @@ function handleWheelStart(e) {
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   
-  // Bail out if the user is tapping any actual button — let click fire normally
-  const isButton = e.target.closest(
-    "#btn-select, #btn-play-pause, #btn-menu, #btn-next, #btn-prev, .wheel-top, .wheel-bottom, .wheel-left, .wheel-right, .clickwheel-center"
-  );
-  if (isButton) return;
+  // Never intercept taps directly on the center select button
+  if (e.target.closest(".clickwheel-center, #btn-select")) return;
+
+  // Check how far from center the touch is.
+  // If the touch is very close to center (inner 30% radius), treat it as a button tap.
+  const rect = clickwheel.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const dist = Math.hypot(clientX - centerX, clientY - centerY);
+  const radius = rect.width / 2;
   
+  // Inner 35% = button zone (play/menu/next/prev) — let click propagate
+  if (dist < radius * 0.35) return;
+
   isDraggingWheel = true;
   startAngle = getWheelAngle(clientX, clientY);
   lastAngle = startAngle;
   angleAccumulator = 0;
-  // Note: do NOT call e.preventDefault() here — it would cancel the click event
-  // on any buttons the user might tap. Scroll is blocked in handleWheelMove instead.
+  // Note: do NOT call e.preventDefault() here — it would cancel click events.
+  // Scroll is blocked inside handleWheelMove once dragging is confirmed.
 }
 
 function handleWheelMove(e) {
