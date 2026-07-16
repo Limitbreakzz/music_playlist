@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIMBUS Music Player</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Click sound effects -->
+  <audio id="click-sound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-84.wav" preload="auto" volume="0.2"></audio>
+  
+  <!-- Hidden local song uploader -->
+  <input type="file" id="local-file-input" multiple accept="audio/*" style="display: none;">
+
+  <div class="app-container">
+    <div class="app-layout">
+      <!-- Left Column: Gallery Side -->
+      <div class="gallery-side">
+        <!-- Y2K Hanging stars & hearts decoration -->
+        <div class="hanging-decorations">
+          <span class="decor-star" style="--glow-color: #ffeb3b; --delay: 0s;">★</span>
+          <span class="decor-heart" style="--glow-color: #e91e63; --delay: 0.3s;">♥</span>
+          <span class="decor-star" style="--glow-color: #9c27b0; --delay: 0.6s;">★</span>
+          <span class="decor-heart" style="--glow-color: #e91e63; --delay: 0.1s;">♥</span>
+          <span class="decor-star" style="--glow-color: #ffeb3b; --delay: 0.8s;">★</span>
+          <span class="decor-heart" style="--glow-color: #e91e63; --delay: 0.4s;">♥</span>
+          <span class="decor-star" style="--glow-color: #9c27b0; --delay: 0.2s;">★</span>
+          <span class="decor-heart" style="--glow-color: #e91e63; --delay: 0.7s;">♥</span>
+        </div>
+
+        <div class="gallery-title"><span class="title-line">✦ YOUR PLAYLIST ✦</span></div>
+        
+        <div class="polaroid-gallery" id="polaroid-gallery">
+          <!-- Dynamically generated Polaroid cards -->
+        </div>
+      </div>
+
+      <!-- Right Column: Player Side -->
+      <div class="player-side">
+        <!-- Main Skeuomorphic Device -->
+        <div class="nimbus-device">
+      <!-- Side buttons for physical feel -->
+      <div class="physical-button vol-up"></div>
+      <div class="physical-button vol-down"></div>
+      <div class="physical-button hold-switch"></div>
+
+      <!-- Screen Section -->
+      <div class="screen-bezel">
+        <div class="screen">
+          <div class="screen-glass"></div>
+          
+          <!-- Screen Header / Status Bar -->
+          <div class="status-bar">
+            <span class="status-time" id="status-time">10:24 AM</span>
+            <div class="battery-wrapper">
+              <span class="battery-text">89%</span>
+              <div class="battery-icon">
+                <div class="battery-level" style="width: 89%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Screen Content Wrapper -->
+          <div class="screen-content">
+            
+            <!-- Screen 1: Now Playing Screen (Standard Vinyl screen) -->
+            <div class="view-panel active" id="view-now-playing">
+              <div class="now-playing-header">
+                <h2 class="song-title" id="np-song-title">Starboy (feat. Daft Punk)</h2>
+                <p class="song-artist" id="np-song-artist">The Weeknd</p>
+              </div>
+
+              <!-- Vinyl Record Player Area -->
+              <div class="turntable-area">
+                <div class="vinyl-container">
+                  <!-- Vinyl disc with concentric grooves and cover art center -->
+                  <div class="vinyl-disc" id="vinyl-disc">
+                    <div class="vinyl-grooves"></div>
+                    <div class="vinyl-label">
+                      <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&q=80" alt="Cover Art" class="cover-art" id="np-cover-art">
+                      <div class="vinyl-center-hole">
+                        <div class="vinyl-play-indicator" id="vinyl-play-indicator">
+                          <!-- Play/Pause SVG inside vinyl center -->
+                          <svg class="indicator-icon icon-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                          <svg class="indicator-icon icon-pause" viewBox="0 0 24 24" style="display:none;"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Skeuomorphic Tonearm -->
+                <div class="tonearm-assembly" id="tonearm-assembly">
+                  <div class="tonearm-base">
+                    <div class="tonearm-base-shine"></div>
+                  </div>
+                  <div class="tonearm-shaft"></div>
+                  <div class="tonearm-headshell"></div>
+                </div>
+              </div>
+
+              <!-- Time display & progress bar -->
+              <div class="playback-progress-container">
+                <div class="time-display">
+                  <span id="current-time">0:00</span>
+                  <span class="divider">/</span>
+                  <span id="total-time">3:51</span>
+                </div>
+                <div class="progress-bar-wrapper">
+                  <div class="progress-bar-bg" id="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Screen 2: List / Menu Navigation Screen -->
+            <div class="view-panel" id="view-menu">
+              <div class="menu-header">NIMBUS OS</div>
+              <div class="menu-list" id="menu-list">
+                <!-- Will be dynamically populated or toggleable -->
+                <div class="menu-item selected" data-action="songs">Songs</div>
+                <div class="menu-item" data-action="artists">Artists</div>
+                <div class="menu-item" data-action="now-playing">Now Playing</div>
+                <div class="menu-item" data-action="visualizer">Visualizer Mode</div>
+                <div class="menu-item" data-action="settings">Settings</div>
+              </div>
+            </div>
+
+            <!-- Screen 3: Songs List -->
+            <div class="view-panel" id="view-songs">
+              <div class="menu-header">Songs</div>
+              <div class="menu-list" id="songs-list">
+                <!-- Dynamically populated songs -->
+              </div>
+            </div>
+
+            <!-- Screen 3.5: Artists List -->
+            <div class="view-panel" id="view-artists">
+              <div class="menu-header">Artists</div>
+              <div class="menu-list" id="artists-list">
+                <!-- Dynamically populated artists -->
+              </div>
+            </div>
+
+            <!-- Screen 3.6: Artist Songs List -->
+            <div class="view-panel" id="view-artist-songs">
+              <div class="menu-header" id="artist-songs-header">Artist Songs</div>
+              <div class="menu-list" id="artist-songs-list">
+                <!-- Dynamically populated artist songs -->
+              </div>
+            </div>
+
+            <!-- Screen 4: Visualizer Screen -->
+            <div class="view-panel" id="view-visualizer">
+              <div class="visualizer-header">
+                <span class="viz-song" id="viz-song-title">Song Title</span>
+                <span class="viz-artist" id="viz-song-artist">Artist</span>
+              </div>
+              <canvas id="visualizer-canvas"></canvas>
+              <div class="visualizer-status">Visualizer active</div>
+            </div>
+
+            <!-- Screen 5: Settings Screen -->
+            <div class="view-panel" id="view-settings">
+              <div class="menu-header">Settings</div>
+              <div class="menu-list" id="settings-list">
+                <div class="menu-item selected" data-setting="theme" data-value="dark">Theme: Dark Metal</div>
+                <div class="menu-item" data-setting="import" data-value="local">Import Local Music</div>
+                <div class="menu-item" data-setting="click-sound" data-value="on">Click Sound: ON</div>
+                <div class="menu-item" data-setting="eq" data-value="normal">EQ: Normal</div>
+                <div class="menu-item" data-setting="about" data-value="info">About Nimbus v1.0</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Volume overlay HUD -->
+          <div class="volume-hud" id="volume-hud">
+            <svg class="volume-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+            <div class="volume-bar-bg">
+              <div class="volume-bar-fill" id="volume-bar-fill" style="width: 50%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Embossed Brand Branding -->
+      <div class="branding">NIMBUS</div>
+
+      <!-- Status LED Button -->
+      <button class="status-led" id="status-led-btn" aria-label="Toggle Power Status"></button>
+
+      <!-- Clickwheel Area -->
+      <div class="clickwheel-outer-wrap">
+        <div class="clickwheel-ring" id="clickwheel">
+          <!-- Clickwheel parts -->
+          <button class="wheel-btn wheel-top" id="btn-menu">MENU</button>
+          <button class="wheel-btn wheel-right" id="btn-next">
+            <!-- Next Icon -->
+            <svg class="wheel-svg-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M6 18l8.5-6L6 6v12zm9-12v12h2V6h-2z"/></svg>
+          </button>
+          <button class="wheel-btn wheel-bottom" id="btn-playpause">
+            <!-- Play/Pause Icon -->
+            <span class="playpause-text">
+              <!-- Play/Pause SVGs -->
+              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+            </span>
+          </button>
+          <button class="wheel-btn wheel-left" id="btn-prev">
+            <!-- Prev Icon -->
+            <svg class="wheel-svg-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+          </button>
+
+          <!-- Clickwheel Center Button -->
+          <button class="clickwheel-center" id="btn-select" aria-label="Select"></button>
+        </div>
+      </div>
+
+      <!-- Bottom ports representation -->
+      <div class="device-bottom-ports">
+        <div class="port-jack"></div>
+        <div class="port-usb"></div>
+        <div class="port-speaker">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
